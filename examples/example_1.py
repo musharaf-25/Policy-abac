@@ -1,44 +1,42 @@
 """
-    Basic example.
+    Modified example - Network Access Control for SEED Emulator nodes.
 """
-
 from py_abac import PDP, Policy, AccessRequest
 from py_abac.storage.memory import MemoryStorage
 
-# Policy definition in JSON
+# Policy definition in JSON - MODIFIED for network simulation
 policy_json = {
     "uid": "1",
-    "description": "Max and Nina are allowed to create, delete, get any "
-                   "resources only if the client IP matches.",
+    "description": "AS100 and AS200 hosts are allowed to create, delete, get "
+                   "any resources only if the client IP matches.",
     "effect": "allow",
     "rules": {
-        "subject": [{"$.name": {"condition": "Equals", "value": "Max"}},
-                    {"$.name": {"condition": "Equals", "value": "Nina"}}],
+        "subject": [{"$.name": {"condition": "Equals", "value": "AS100"}},
+                    {"$.name": {"condition": "Equals", "value": "AS200"}}],
         "resource": {"$.name": {"condition": "RegexMatch", "value": ".*"}},
         "action": [{"$.method": {"condition": "Equals", "value": "create"}},
                    {"$.method": {"condition": "Equals", "value": "delete"}},
                    {"$.method": {"condition": "Equals", "value": "get"}}],
-        "context": {"$.ip": {"condition": "CIDR", "value": "127.0.0.1/32"}}
+        "context": {"$.ip": {"condition": "CIDR", "value": "10.100.0.0/24"}}
     },
     "targets": {},
     "priority": 0
 }
+
 # Parse JSON and create policy object
 policy = Policy.from_json(policy_json)
-
 # Setup policy storage
 storage = MemoryStorage()
 # Add policy to storage
 storage.add(policy)
-
 # Create policy decision point
 pdp = PDP(storage)
 
-# A sample access request JSON
+# Access request - AS100 host trying to get a resource
 request_json = {
     "subject": {
         "id": "",
-        "attributes": {"name": "Max"}
+        "attributes": {"name": "AS100"}
     },
     "resource": {
         "id": "",
@@ -49,13 +47,13 @@ request_json = {
         "attributes": {"method": "get"}
     },
     "context": {
-        "ip": "127.0.0.1"
+        "ip": "10.100.0.71"
     }
 }
+
 # Parse JSON and create access request object
 request = AccessRequest.from_json(request_json)
 
 if __name__ == '__main__':
-    # Check if access request is allowed. Evaluates to True since
-    # Max is allowed to get any resource when client IP matches.
-    assert pdp.is_allowed(request)
+    result = pdp.is_allowed(request)
+    print(f"AS100 host access request: {'ALLOWED' if result else 'DENIED'}")
